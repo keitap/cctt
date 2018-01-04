@@ -33,5 +33,8 @@
       "run_at": "document_idle",
       "all_frames": false
     }
+  ],
+  "permissions": [
+    "https://api.zaif.jp/*"
   ]
 }
