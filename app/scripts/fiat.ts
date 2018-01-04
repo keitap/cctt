@@ -1,5 +1,6 @@
 enum FIAT_PROVIDER {
   ZAIF = 'zaif',
+  BITBANK = 'bitbank',
 }
 
 type FiatProvider = {
@@ -13,11 +14,16 @@ const FIAT_PROVIDERS: { [key: string]: FiatProvider } = {
     currencyCode: 'JPY',
     endpoint: 'https://api.zaif.jp/api/1/last_price/btc_jpy',
     extractValue: (json: any) => json.last_price,
+  },
+  [FIAT_PROVIDER.BITBANK]: {
+    currencyCode: 'JPY',
+    endpoint: 'https://public.bitbank.cc/btc_jpy/ticker',
+    extractValue: (json: any) => json.data.last,
   }
 };
 
 export function getFiatConverter() {
-  return new FiatConverter(FIAT_PROVIDERS[FIAT_PROVIDER.ZAIF]);
+  return new FiatConverter(FIAT_PROVIDERS[FIAT_PROVIDER.BITBANK]);
 }
 
 class FiatConverter {
