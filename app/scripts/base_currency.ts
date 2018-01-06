@@ -1,6 +1,7 @@
 export enum PROVIDER {
   ZAIF = 'zaif',
   BITBANK = 'bitbank',
+  BITFLYER = 'bitflyer',
 }
 
 type Provider = {
@@ -22,7 +23,13 @@ const PROVIDER_DEFINITION: { [key: string]: Provider } = {
     currencyCode: 'JPY',
     endpoint: 'https://public.bitbank.cc/btc_jpy/ticker',
     extractValue: (json: any) => Number(json.data.last),
-  }
+  },
+  [PROVIDER.BITFLYER]: {
+    name: 'bitFlyer',
+    currencyCode: 'JPY',
+    endpoint: 'https://api.bitflyer.jp/v1/ticker?product_code=BTC_JPY',
+    extractValue: (json: any) => json.ltp,
+  },
 };
 
 export function getCurrencyConverter(provider: PROVIDER) {

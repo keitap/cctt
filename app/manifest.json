@@ -42,6 +42,7 @@
   "permissions": [
     "storage",
     "https://api.zaif.jp/*",
-    "https://public.bitbank.cc/*"
+    "https://public.bitbank.cc/*",
+    "https://api.bitflyer.jp/*"
   ]
 }
