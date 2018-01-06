@@ -1,42 +1,49 @@
-enum FIAT_PROVIDER {
+export enum PROVIDER {
   ZAIF = 'zaif',
   BITBANK = 'bitbank',
 }
 
-type FiatProvider = {
+type Provider = {
+  name: string;
   currencyCode: string;
   endpoint: string;
   extractValue: (json: any) => number;
 };
 
-const FIAT_PROVIDERS: { [key: string]: FiatProvider } = {
-  [FIAT_PROVIDER.ZAIF]: {
+const PROVIDER_DEFINITION: { [key: string]: Provider } = {
+  [PROVIDER.ZAIF]: {
+    name: 'Zaif',
     currencyCode: 'JPY',
     endpoint: 'https://api.zaif.jp/api/1/last_price/btc_jpy',
     extractValue: (json: any) => json.last_price,
   },
-  [FIAT_PROVIDER.BITBANK]: {
+  [PROVIDER.BITBANK]: {
+    name: 'bitbank',
     currencyCode: 'JPY',
     endpoint: 'https://public.bitbank.cc/btc_jpy/ticker',
-    extractValue: (json: any) => json.data.last,
+    extractValue: (json: any) => Number(json.data.last),
   }
 };
 
-export function getFiatConverter() {
-  return new FiatConverter(FIAT_PROVIDERS[FIAT_PROVIDER.BITBANK]);
+export function getCurrencyConverter(provider: PROVIDER) {
+  return new CurrencyConverter(PROVIDER_DEFINITION[provider]);
 }
 
-class FiatConverter {
-  private btcFiat?: number;
+export class CurrencyConverter {
+  private btcBase?: number;
 
-  constructor(public provider: FiatProvider) {
+  constructor(private provider: Provider) {
   }
 
   async fetchLastPrice() {
     const {endpoint, extractValue} = this.provider;
     const resp = await fetch(endpoint);
     const json = await resp.json();
-    this.btcFiat = extractValue(json);
+    this.btcBase = extractValue(json);
+  }
+
+  getName() {
+    return this.provider.name;
   }
 
   getCurrencyCode() {
@@ -47,24 +54,24 @@ class FiatConverter {
     return this.provider.endpoint;
   }
 
-  getFiatValue() {
-    return this.btcFiat;
+  getBaseCurrencyValue() {
+    return this.btcBase;
   }
 
-  getFormattedFiatValue() {
-    return FiatConverter.format(this.btcFiat || NaN);
+  getFormattedBaseCurrencyValue() {
+    return CurrencyConverter.format(this.btcBase || NaN);
   }
 
   convertToNumber(btc: number) {
-    if (!this.btcFiat) {
+    if (!this.btcBase) {
       return NaN;
     }
 
-    return this.btcFiat * btc;
+    return this.btcBase * btc;
   }
 
   convertToString(btc: number): string {
-    return FiatConverter.format(this.convertToNumber(btc));
+    return CurrencyConverter.format(this.convertToNumber(btc));
   }
 
   private static format(v: number) {

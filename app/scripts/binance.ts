@@ -1,19 +1,26 @@
 import 'chromereload/devonly';
-import {getFiatConverter} from './fiat';
+import {CurrencyConverter, getCurrencyConverter, PROVIDER} from './base_currency';
+import {BGMSGType, STORAGE_KEY_PROVIDER} from './const';
+import StorageChange = chrome.storage.StorageChange;
 
 const SELECTOR_TOTAL = 'li.total';
 const SELECTOR_TOTAL_BTC = 'li.total strong:first-of-type';
-const SELECTOR_TOTAL_FIAT = '#total_fiat';
 const SELECTOR_BTC_HEADER = 'ul.accountInfo-lists li.th div.equalValue';
 const SELECTOR_BTC_VALUES = 'ul.accountInfo-lists li.td div.equalValue';
+const DOM_ID_TOTAL_BASE_CCY = '#total_base_ccy';
 
 const RETRY_WAIT_TIME = 1000;
 
-const fiatConv = getFiatConverter();
-
-let isFiat: boolean | null = null;
+let baseCCYConv: CurrencyConverter | null;
+let isBaseCCY: boolean | null = null;
 
 async function updateFunds() {
+  if (!baseCCYConv) {
+    // not yet loaded?
+    setTimeout(updateFunds, RETRY_WAIT_TIME);
+    return;
+  }
+
   const totalBTCElem = document.querySelector<HTMLElement>(SELECTOR_TOTAL_BTC);
 
   if (!totalBTCElem) {
@@ -39,19 +46,20 @@ async function updateFunds() {
     return;
   }
 
-  // fetch fiat last value from exchange
-  await fiatConv.fetchLastPrice();
+  // fetch base ccy last value from exchange
+  await baseCCYConv.fetchLastPrice();
 
   // updateFunds values
-  const fiatElem = getOrCreateTotalFiatElem();
-  fiatElem.setAttribute('title', `${fiatConv.getFormattedFiatValue()} ${fiatConv.getCurrencyCode()} / BTC`);
-  fiatElem.textContent = `${fiatConv.convertToString(totalBTCValue)} ${fiatConv.getCurrencyCode()}`;
+  const baseCCYElem = getOrCreateTotalBaseCCYElem();
+  baseCCYElem.setAttribute('title',
+    `${baseCCYConv.getFormattedBaseCurrencyValue()} ${baseCCYConv.getCurrencyCode()} / BTC`);
+  baseCCYElem.textContent = `${baseCCYConv.convertToString(totalBTCValue)} ${baseCCYConv.getCurrencyCode()} (${baseCCYConv.getName()})`;
 
-  const isInit = isFiat === null;
+  const isInit = isBaseCCY === null;
 
   if (isInit) {
-    // default is displaying fiat value.
-    isFiat = true;
+    // default is displaying base ccy value.
+    isBaseCCY = true;
   }
 
   for (let i = 0; i < rows.length; i++) {
@@ -63,8 +71,8 @@ async function updateFunds() {
 
     const btc = Number(e.getAttribute('data-btc'));
 
-    if (isFiat) {
-      e.textContent = `${fiatConv.convertToString(btc)}`;
+    if (isBaseCCY) {
+      e.textContent = `${baseCCYConv.convertToString(btc)}`;
     } else {
       e.textContent = `${btc}`;
     }
@@ -77,25 +85,25 @@ async function updateFunds() {
     return;
   }
 
-  if (isFiat) {
-    headerElem.textContent = `${fiatConv.getCurrencyCode()} Value`;
+  if (isBaseCCY) {
+    headerElem.textContent = `${baseCCYConv.getCurrencyCode()} Value`;
   } else {
     headerElem.textContent = `BTC Value`;
   }
 
   headerElem.style.cursor = 'pointer';
   headerElem.onclick = (e) => {
-    isFiat = !isFiat;
+    isBaseCCY = !isBaseCCY;
     updateFunds();
   };
 }
 
-function getOrCreateTotalFiatElem() {
-  let e = document.querySelector(SELECTOR_TOTAL_FIAT);
+function getOrCreateTotalBaseCCYElem() {
+  let e = document.getElementById(DOM_ID_TOTAL_BASE_CCY);
 
   if (e === null) {
     e = document.createElement('strong');
-    e.setAttribute('id', 'total_fiat');
+    e.setAttribute('id', DOM_ID_TOTAL_BASE_CCY);
 
     const t = document.querySelector(SELECTOR_TOTAL);
     if (t !== null) {
@@ -109,6 +117,20 @@ function getOrCreateTotalFiatElem() {
   return e;
 }
 
-if (document.querySelector('div.chargeWithdraw') !== null) {
+function updateBaseCCYProvider(provider: PROVIDER) {
+  baseCCYConv = getCurrencyConverter(provider);
   updateFunds();
+}
+
+if (document.querySelector('div.chargeWithdraw') !== null) {
+  chrome.runtime.sendMessage(BGMSGType.ENABLE_PAGE_ACTION);
+
+  chrome.storage.local.get((items: { [key: string]: any }) => {
+    const provider = items[STORAGE_KEY_PROVIDER];
+    updateBaseCCYProvider(provider);
+  });
+
+  chrome.storage.onChanged.addListener((changes: { [key: string]: StorageChange }, areaName: string) => {
+    updateBaseCCYProvider(changes[STORAGE_KEY_PROVIDER].newValue);
+  });
 }

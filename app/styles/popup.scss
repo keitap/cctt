@@ -1,0 +1,31 @@
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+#providers {
+  width: 200px;
+  font-size: medium;
+  font-family: -apple-system, system-ui, "Helvetica Neue", "Hiragino Kaku Gothic ProN", YuGothic-M, YuGothic, Meiryo, sans-serif;
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
+  cursor: pointer;
+
+  li {
+    margin: 0;
+    padding: 8px 10px;
+    border-left: 5px solid transparent;
+
+    &.active {
+      border-left: 5px solid red;
+    }
+
+    &:hover {
+      background-color: #ddd;
+    }
+  }
+}
+
+
